@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import MBProgressHUD
 import AFNetworking
 
 class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
@@ -25,17 +26,21 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         let url = URL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)")!
         let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         let session = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
+       
+        let loadDataNetwork = UIRefreshControl()
+        loadDataNetwork.addTarget(self, action: #selector(loadDataFromNetwork(_:)), for: UIControlEvents.valueChanged)
+        
         let task: URLSessionDataTask = session.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
             if let data = data {
                 if let dataDictionary = try! JSONSerialization.jsonObject(with: data, options: []) as? NSDictionary {
-                    print(dataDictionary)
                     
-                    
-                    self.movies = dataDictionary["results"] as![NSDictionary]
+                    MBProgressHUD.hide(for: self.view, animated: true)
+                    self.movies = dataDictionary["results"] as?[NSDictionary]
                     
                     self.tableView.reloadData()
                 }
             }
+            self.tableView.insertSubview(loadDataNetwork, at: 0)
         }
         task.resume()
     }
@@ -55,7 +60,7 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
             return 0
         }
         
-        return movies!.count //This will be the numbers of movies in the movies array
+         //This will be the numbers of movies in the movies array
     }
     
     //Be able to communicate and set the content inside the cell
@@ -84,6 +89,31 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         
         print("row\(indexPath.row)")
         return cell
+    }
+    
+    func loadDataFromNetwork(_ refresh: UIRefreshControl){
+    
+        let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
+        let url = URL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)")!
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+        let session = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
+       MBProgressHUD.showAdded(to: self.view, animated: true)
+        
+        let task: URLSessionDataTask = session.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
+            if let data = data {
+                if let dataDictionary = try! JSONSerialization.jsonObject(with: data, options: []) as? NSDictionary {
+                    
+                    MBProgressHUD.hide(for: self.view, animated: true)
+                    self.movies = dataDictionary["results"] as?[NSDictionary]
+                    
+                    self.tableView.reloadData()
+                }
+            }
+        }
+        task.resume()
+        
+        tableView.reloadData()
+        refresh.endRefreshing()
     }
     
 
